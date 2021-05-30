@@ -14,7 +14,7 @@ class GA():
         chromosome = np.reshape(self.data, self.size_1d)
 
         def fitness_func(solution, solution_idx):
-            fitness = np.sum(np.abs(chromosome-solution))
+            fitness = np.mean(np.abs(chromosome-solution))
             fitness = np.sum(chromosome) - fitness
             return fitness
 
