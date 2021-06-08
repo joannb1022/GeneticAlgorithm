@@ -8,10 +8,11 @@ class InputWindow:
         self.layout = [[sg.Text('Shape Classification', size=(40, 1), justification='center', font='Helvetica 20')],
                        [sg.Text("There are 4 shapes:")],
                        [sg.Text("circle, square, triangle, star")],
-                       [sg.Input(default_text="square", key="-SHAPE-")],
+                       [sg.Input(default_text="triangle", key="-SHAPE-")],
                        [sg.Spin([i for i in range(0, 500, 1)], initial_value=20000, key="-GENERATIONS-")],
                        [sg.Button('Start', size=(10, 1), font='Helvetica 14')],
-                       [sg.Button('Show', size=(10, 1), font='Helvetica 14')]]
+                       [sg.Button('Show', size=(10, 1), font='Helvetica 14')],
+                       [sg.Button('Exit', size=(10, 1), font='Helvetica 14')]]
         self.interrupted = False
     def show(self):
         window = sg.Window('Main Window', self.layout, location=(800, 400))
@@ -27,4 +28,6 @@ class InputWindow:
                 algorithm = GA(self.generations, self.shape)
                 algorithm.run()
                 break
+            if event == "Exit":
+                window.close()
         window.close()
