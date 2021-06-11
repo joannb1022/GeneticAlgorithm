@@ -3,7 +3,6 @@ import sys
 import numpy as np
 import scipy.misc
 import itertools
-import GARI
 import imageio
 import cv2
 import functools
@@ -22,16 +21,23 @@ def selection(population, target):
     result = np.zeros(population.shape[0])
 
     for i in range(population.shape[0]):
+
+        #srednia roznicy miedzy docelowym zdjeciem a chromosomem i
         res = np.mean(np.abs(target - population[i,:]))
         res = np.sum(target) - res
         result[i] = res
-    best_indv = np.max(result)
-    return result, best_indv
+    # best_indv = np.max(result)
+    return result
 
 def mutation(new_generation, parents, mutation_prob):
+
+    size = new_generation.shape[1]
+    num_mutation = int(size * mutation_prob/100)  #mutation_prob w %
+
+    #mutujemy tylko dzieci, czyli u nas parents to liczba pierwszych chromosomow - rodzice, potem potomstwo
     for idx in range(parents, new_generation.shape[0]):
-        rand_idx = np.uint32(np.random.random(size=np.uint32(mutation_prob/100*new_generation.shape[1]))*new_generation.shape[1])
-        new_values = np.uint8(np.random.random(size=rand_idx.shape[0])*256)
+        rand_idx = np.uint32(np.random.random(size=np.uint32(num_mutation))*size)  #indeksy do podmienienia
+        new_values = np.uint8(np.random.random(num_mutation) * 256)  #nowe wartosci losowe w zakresie wartosci pixeli
         new_generation[idx, rand_idx] = new_values
     return new_generation
 
@@ -43,26 +49,31 @@ def reproduction(population, result, parents, img_size):
     mating = np.zeros(parents)
 
     for p in range(parents):
-        #szukam indeksu najlepszszego
-        indx = np.argmax(result[0])
+        #szukam indeksu najlepszszego i wpsiuje do tablicy mating
+        # indx = np.argmin(result)
+        indx = np.argmax(result)
         mating[p] = indx
-        result[0][indx] = -1
+        result[indx] = -1
 
-    new_population = np.zeros(shape=(population.shape[0], functools.reduce(operator.mul, img_size)), dtype=np.uint8)
+    #powstala tablica mating to tablica najlepszych osobnikow (ich indeksow) w kolejnosci malejacej
+    new_population = np.zeros((population.shape[0], 120000), dtype=np.uint8)
 
     #najpierw dodaje tych dobrych
     for i in range(parents):
         new_population[i] = population[int(mating[i])]
 
-    offspring = population.shape[0] - parents
-    parents_permutations = list(itertools.permutations(iterable=np.arange(0, parents), r=2))
-    selected_permutations = random.sample(range(len(parents_permutations)), offspring)
+    offspring = population.shape[0] - parents  # liczba potomstwa
+
+    pairs = list(itertools.permutations(range(0, parents), 2))  # wszystkie mozliwe pary rodzicow
+
+    num = len(pairs)
+    chosen_pairs_idx = random.sample(range(num), offspring)
 
     comb_idx = parents
-    for comb in range(len(selected_permutations)):
+    for comb in range(len(chosen_pairs_idx)):
 
-        selected_comb_idx = selected_permutations[comb]
-        selected_comb = parents_permutations[selected_comb_idx]
+        selected_comb_idx = chosen_pairs_idx[comb]
+        selected_comb = pairs[selected_comb_idx]
 
         half_size = np.int32(new_population.shape[1]/2)
         new_population[comb_idx+comb, 0:half_size] = population[int(mating[selected_comb[0]]), 0:half_size]
@@ -82,6 +93,7 @@ def create_population(img_size, population_size, chromosome  = []):
     return init_population
 
 def show_best(result, population, img_size):
+    # best = np.argmin(result[0])
     best = np.argmax(result[0])
 
     img_arr = np.reshape(a=population[best], newshape=img_size)
@@ -89,15 +101,15 @@ def show_best(result, population, img_size):
 
 def run(iterations, population, mutation_prob, target, parents, img_size):
     for i in range(iterations):
-        print("iteracja \n", i)
+        print("Iteracja \n", i)
         #wartosci dla poszczegolnych osobnikow (jak dobrze pasuja)
         result = selection(population, target)
+        print(result)
         new_generation = reproduction(population, result, parents, img_size)
         population = mutation(new_generation, parents, mutation_prob)
 
     image = show_best(result, population, img_size)
     return image
-
 
 
 
@@ -114,8 +126,8 @@ pear_chromosome = chromosome(pear)
 apple = cv2.imread("apple1.jpg")
 apple = cv2.resize(apple, (size, size))
 apple_chromosome = chromosome(apple)
-population = create_population(pear.shape, population_size)
-# population = create_population(pear.shape, population_size, chromosome = apple_chromosome)
+# population = create_population(pear.shape, population_size)
+population = create_population(pear.shape, population_size, chromosome = apple_chromosome)
 
 image = run(iterations, population, mutation_prob, pear_chromosome, parents, pear.shape)
 plt.imsave("im.png", image)
